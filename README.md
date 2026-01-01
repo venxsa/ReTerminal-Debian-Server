@@ -22,6 +22,19 @@ A CI workflow builds and publishes APKs you can download directly from GitHub Ac
 - Uploads debug and release APKs as artifacts named with `versionName` and `versionCode`
 
 If you ever want to sign releases with your own keystore, provide `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, and `KEY_PASSWORD` secrets; otherwise the CI falls back to debug signing so artifacts are always produced.
+A CI workflow builds and publishes APKs you can download directly from GitHub Actions:
+- `./gradlew :app:assembleDebug :app:assembleRelease` on pushes and PRs
+- Uploads debug and release APKs as artifacts named with `versionName` and `versionCode`
+- On `v*.*.*` tags, a signed release APK is attached to a GitHub Release
+
+### Signing secrets
+Configure these repository secrets to sign release builds:
+- `KEYSTORE_BASE64`: base64-encoded keystore
+- `KEYSTORE_PASSWORD`: keystore password
+- `KEY_ALIAS`: key alias
+- `KEY_PASSWORD`: key password
+
+The workflow decodes the keystore to `/tmp/release.keystore`; Gradle picks it up automatically for the `release` build type.
 
 ## Development notes
 - Rootfs is downloaded from `https://www.dropbox.com/s/zxfg8aosr7zzmg8/arm64-rootfs-20170318T102424Z.tar.gz?dl=1`.
