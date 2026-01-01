@@ -34,7 +34,10 @@ android {
                 println("[signing] Release keystore not found, using unsigned release configuration")
             }
         }
+
         getByName("debug") {
+            // Use the default debug keystore Gradle provides if no custom keystore exists.
+            storeFile = file("${'$'}{rootDir}/debug.keystore")
             storeFile = file(layout.buildDirectory.dir("../debug.keystore"))
             storePassword = "android"
             keyAlias = "androiddebugkey"
@@ -46,12 +49,14 @@ android {
         getByName("release") {
             isMinifyEnabled = false
             isShrinkResources = false
+
             val releaseKeystoreFile = file("/tmp/release.keystore")
             signingConfig = if (releaseKeystoreFile.exists()) {
                 signingConfigs.getByName("release")
             } else {
                 signingConfigs.getByName("debug")
             }
+
             signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -59,6 +64,7 @@ android {
             )
             resValue("string", "app_name", "Debian Proot Console")
         }
+
         getByName("debug") {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-DEBUG"
@@ -86,8 +92,14 @@ android {
     packaging {
         resources.excludes.add("META-INF/DEPENDENCIES")
     }
+
+    packaging {
+        resources.excludes.add("META-INF/DEPENDENCIES")
+    }
 }
 
+tasks.register("printVersionName") {
+    doLast { println(android.defaultConfig.versionName) }
 tasks.register("printVersionName") {
     doLast { println(android.defaultConfig.versionName) }
 }
@@ -96,6 +108,9 @@ tasks.register("printVersionCode") {
     doLast { println(android.defaultConfig.versionCode) }
 }
 
+tasks.register("printVersionCode") {
+    doLast { println(android.defaultConfig.versionCode) }
+}
 
 dependencies {
     implementation(project(":core:terminal-view"))
