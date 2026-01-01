@@ -20,7 +20,6 @@ Debian Proot Console delivers a KVM-like Debian shell experience entirely in use
 A CI workflow builds and publishes APKs you can download directly from GitHub Actions without any signing secrets:
 - `./gradlew :app:assembleDebug :app:assembleRelease` on pushes and PRs
 - Uploads debug and release APKs as artifacts named with `versionName` and `versionCode`
-- On `v*.*.*` tags, the release APK artifact is also attached to a GitHub Release
 
 If you ever want to sign releases with your own keystore, provide `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, and `KEY_PASSWORD` secrets; otherwise the CI falls back to debug signing so artifacts are always produced.
 
