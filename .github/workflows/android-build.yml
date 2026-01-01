@@ -1,29 +1,27 @@
-name: Android CI
+name: Android APK Build
+
 on:
   push:
-    branches:
-      - main
-      - dev
-    paths-ignore:
-      - '**/*.md'
-  workflow_dispatch:
+    branches: [ "main", "master" ]
+    tags:
+      - "v*.*.*"
+  pull_request:
 
 jobs:
-  build-release:
-    name: Build Release
+  build:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          distribution: temurin
+          java-version: 17
           cache: gradle
 
-      - name: Decode release keystore
+      - name: Decode keystore
         if: ${{ secrets.KEYSTORE_BASE64 != '' }}
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > /tmp/release.keystore
@@ -31,7 +29,7 @@ jobs:
           echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
           echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
 
-      - name: Grant execute permission for gradlew
+      - name: Grant execute permission for Gradle
         run: chmod +x gradlew
 
       - name: Resolve version info
@@ -42,9 +40,14 @@ jobs:
           echo "name=$VERSION_NAME" >> $GITHUB_OUTPUT
           echo "code=$VERSION_CODE" >> $GITHUB_OUTPUT
 
-      - name: Build with Gradle
-        run: ./gradlew :app:assembleRelease
-        continue-on-error: false
+      - name: Build debug and release APKs
+        run: ./gradlew :app:assembleDebug :app:assembleRelease
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: debian-proot-debug-${{ steps.version.outputs.name }}-${{ steps.version.outputs.code }}
+          path: app/build/outputs/apk/debug/*.apk
 
       - name: Upload release APK
         uses: actions/upload-artifact@v4
@@ -52,6 +55,10 @@ jobs:
           name: debian-proot-release-${{ steps.version.outputs.name }}-${{ steps.version.outputs.code }}
           path: app/build/outputs/apk/release/*.apk
 
-      - name: Clean up keystore
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
-        run: rm /tmp/release.keystore || true
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: app/build/outputs/apk/release/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

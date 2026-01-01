@@ -1,61 +1,39 @@
-# ReTerminal
-**ReTerminal** is a sleek, Material 3-inspired terminal emulator designed as a modern alternative to the legacy [Jackpal Terminal](https://github.com/jackpal/Android-Terminal-Emulator). Built on [Termux's](https://github.com/termux/termux-app) robust TerminalView
+# Debian Proot Console
 
-Download the latest APK from the [Releases Section](https://github.com/RohitKushvaha01/ReTerminal/releases/latest).
+Debian Proot Console delivers a KVM-like Debian shell experience entirely in userspace. The app downloads a Debian ARM64 rootfs on first launch, prepares a bundled proot loader, and connects it to a fast PTY-backed terminal so you can work inside Debian without root, Shizuku, or any virtualization APIs.
 
-# Features
-- [x] Basic Terminal
-- [x] Virtual Keys
-- [x] Multiple Sessions
-- [x] Alpine Linux support
+## How it works
+- **Rootfs bootstrap**: On first launch the app downloads the Debian ARM64 rootfs tarball to `files/downloads/rootfs.tar.gz`, validates the size, and extracts it into `files/debian-rootfs` with live progress.
+- **Bundled proot**: A proot loader is packaged with the app (native `.so` plus an asset shim) and copied to `files/bin/proot` with executable permissions.
+- **Terminal integration**: Termux's `TerminalView` provides a PTY-backed console with ANSI color, scrollback, and interactive input. The proot command binds `/dev`, `/proc`, `/sys`, and `/sdcard` and starts `/bin/bash --login` inside the Debian rootfs with correct locale and DNS (`/etc/resolv.conf` is rewritten to `8.8.8.8`).
+- **Process management**: A singleton `ProcessManager` tracks running PTY sessions and can terminate them cleanly.
+- **Fix system**: The Fix System action stops every managed proot session, wipes the extracted rootfs, cached tarball, temp state, and resets the terminal to a fresh install state.
 
-# Screenshots
-<div>
-  <img src="/fastlane/metadata/android/en-US/images/phoneScreenshots/01.png" width="32%" />
-  <img src="/fastlane/metadata/android/en-US/images/phoneScreenshots/02.jpg" width="32%" />
-  <img src="/fastlane/metadata/android/en-US/images/phoneScreenshots/03.jpg" width="32%" />
-</div>
+## Features
+- Kotlin + Compose + Material3 UI
+- MVVM state flows for download/extraction/terminal status
+- Progress feedback for download and extraction
+- PTY-backed Debian bash with ANSI colors, Ctrl+C support, and smooth scrolling
+- No KVM, no hypervisors, no Shizuku—pure userspace proot
 
-## Community
-> [!TIP]
-Join the reTerminal community to stay updated and engage with other users:
-- [Telegram](https://t.me/reTerminal)
+## GitHub Actions (APK deployer)
+A CI workflow builds and publishes APKs you can download directly from GitHub Actions:
+- `./gradlew :app:assembleDebug :app:assembleRelease` on pushes and PRs
+- Uploads debug and release APKs as artifacts named with `versionName` and `versionCode`
+- On `v*.*.*` tags, a signed release APK is attached to a GitHub Release
 
+### Signing secrets
+Configure these repository secrets to sign release builds:
+- `KEYSTORE_BASE64`: base64-encoded keystore
+- `KEYSTORE_PASSWORD`: keystore password
+- `KEY_ALIAS`: key alias
+- `KEY_PASSWORD`: key password
 
-# FAQ
+The workflow decodes the keystore to `/tmp/release.keystore`; Gradle picks it up automatically for the `release` build type.
 
-### **Q: Why do I get a "Permission Denied" error when trying to execute a binary or script?**
-**A:** This happens because ReTerminal runs on the latest Android API, which enforces **W^X restrictions**. Since files in `$PREFIX` or regular storage directories can't be executed directly, you need to use one of the following workarounds:
-
----
-
-### **Option 1: Use the Dynamic Linker (for Binaries)**
-If you're trying to run a binary (not a script), you can use the dynamic linker to execute it:
-
-```bash
-$LINKER /absolute/path/to/binary
-```
-
-✅ **Note:** This method won't work for **statically linked binaries** (binaries without external dependencies).
-
----
-
-### **Option 2: Use `sh` for Scripts**
-If you're trying to execute a shell script, simply use `sh` to run it:
-
-```bash
-sh /path/to/script
-```
-
-This bypasses the need for execute permissions since the script is interpreted by the shell.
-
----
-
-### **Option 3: Use Shizuku for Full Shell Access (Recommended)**
-If you have **Shizuku** installed, you can gain shell access to `/data/local/tmp`, which has executable permissions. This is the easiest way to run binaries without restrictions.
-
-
-## Found this app useful? :heart:
-Support it by giving a star :star: <br>
-Also, **__[follow](https://github.com/Rohitkushvaha01)__** me for my next creations!
-
+## Development notes
+- Rootfs is downloaded from `https://www.dropbox.com/s/zxfg8aosr7zzmg8/arm64-rootfs-20170318T102424Z.tar.gz?dl=1`.
+- Rootfs path: `/data/data/<package>/files/debian-rootfs`
+- Proot path: `/data/data/<package>/files/bin/proot`
+- DNS/hosts are reset during validation to guarantee network access from inside Debian.
+- Use **Fix system** if you need a clean reinstall or if a bootstrap step fails.
