@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Debian Proot Console</string>
+    <string name="action_launch">Launch Debian</string>
+    <string name="action_fix_system">Fix system</string>
+    <string name="action_download">Download rootfs</string>
+    <string name="status_ready">Debian rootfs ready</string>
+    <string name="status_not_ready">Rootfs not available</string>
+    <string name="status_downloading">Downloading Debian rootfs</string>
+    <string name="status_extracting">Extracting Debian rootfs</string>
+</resources>
