@@ -18,7 +18,11 @@ android {
     }
 
     signingConfigs {
+        val releaseKeystoreFile = file("/tmp/release.keystore")
+
         create("release") {
+            if (releaseKeystoreFile.exists()) {
+                storeFile = releaseKeystoreFile
             val keystoreFromEnv = File("/tmp/release.keystore")
             if (keystoreFromEnv.exists()) {
                 storeFile = keystoreFromEnv
@@ -26,6 +30,7 @@ android {
                 keyAlias = System.getenv("KEY_ALIAS")
                 keyPassword = System.getenv("KEY_PASSWORD")
             } else {
+                println("[signing] Release keystore not found; release will fall back to debug signing for CI artifacts")
                 println("[signing] Release keystore not found, using unsigned release configuration")
             }
         }
@@ -41,6 +46,12 @@ android {
         getByName("release") {
             isMinifyEnabled = false
             isShrinkResources = false
+            val releaseKeystoreFile = file("/tmp/release.keystore")
+            signingConfig = if (releaseKeystoreFile.exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
             signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
