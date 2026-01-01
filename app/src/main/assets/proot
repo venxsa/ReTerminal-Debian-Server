@@ -1,0 +1,11 @@
+#!/system/bin/sh
+# Bundled proot shim. If a native proot loader is packaged it will be used.
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+if [ -x "$SCRIPT_DIR/libproot-loader.so" ]; then
+  exec "$SCRIPT_DIR/libproot-loader.so" "$@"
+fi
+if [ -x "$SCRIPT_DIR/proot-real" ]; then
+  exec "$SCRIPT_DIR/proot-real" "$@"
+fi
+echo "proot binary is not available in assets or native libs" 1>&2
+exit 1
