@@ -29,6 +29,8 @@ jobs:
           VERSION_CODE=$(./gradlew -q printVersionCode)
           echo "name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
           echo "code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+          echo "name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "code=$VERSION_CODE" >> $GITHUB_OUTPUT
 
       - name: Build debug and release APKs
         run: ./gradlew :app:assembleDebug :app:assembleRelease
@@ -44,3 +46,11 @@ jobs:
         with:
           name: debian-proot-release-${{ steps.version.outputs.name }}-${{ steps.version.outputs.code }}
           path: app/build/outputs/apk/release/*.apk
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: app/build/outputs/apk/release/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

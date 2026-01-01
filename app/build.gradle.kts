@@ -21,9 +21,16 @@ android {
     val hasReleaseKeystore = releaseKeystoreFile.exists()
 
     signingConfigs {
+        val releaseKeystoreFile = file("/tmp/release.keystore")
+
         create("release") {
             if (hasReleaseKeystore) {
                 storeFile = releaseKeystoreFile
+            if (releaseKeystoreFile.exists()) {
+                storeFile = releaseKeystoreFile
+            val keystoreFromEnv = File("/tmp/release.keystore")
+            if (keystoreFromEnv.exists()) {
+                storeFile = keystoreFromEnv
                 storePassword = System.getenv("KEYSTORE_PASSWORD")
                 keyAlias = System.getenv("KEY_ALIAS")
                 keyPassword = System.getenv("KEY_PASSWORD")
@@ -31,12 +38,14 @@ android {
                 println("[signing] Release keystore not found; release will fall back to debug signing for CI artifacts")
                 enableV1Signing = true
                 enableV2Signing = true
+                println("[signing] Release keystore not found, using unsigned release configuration")
             }
         }
 
         getByName("debug") {
             // Use the default debug keystore Gradle provides if no custom keystore exists.
             storeFile = file("${'$'}{rootDir}/debug.keystore")
+            storeFile = file(layout.buildDirectory.dir("../debug.keystore"))
             storePassword = "android"
             keyAlias = "androiddebugkey"
             keyPassword = "android"
@@ -50,6 +59,13 @@ android {
 
             signingConfig = if (hasReleaseKeystore) signingConfigs.getByName("release") else signingConfigs.getByName("debug")
 
+            val releaseKeystoreFile = file("/tmp/release.keystore")
+            signingConfig = if (releaseKeystoreFile.exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -84,10 +100,20 @@ android {
     packaging {
         resources.excludes.add("META-INF/DEPENDENCIES")
     }
+
+    packaging {
+        resources.excludes.add("META-INF/DEPENDENCIES")
+    }
 }
 
 tasks.register("printVersionName") {
     doLast { println(android.defaultConfig.versionName) }
+tasks.register("printVersionName") {
+    doLast { println(android.defaultConfig.versionName) }
+}
+
+tasks.register("printVersionCode") {
+    doLast { println(android.defaultConfig.versionCode) }
 }
 
 tasks.register("printVersionCode") {
