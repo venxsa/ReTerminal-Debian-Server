@@ -51,7 +51,3 @@ jobs:
         with:
           name: debian-proot-release-${{ steps.version.outputs.name }}-${{ steps.version.outputs.code }}
           path: app/build/outputs/apk/release/*.apk
-
-      - name: Clean up keystore
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
-        run: rm /tmp/release.keystore || true
