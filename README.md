@@ -17,7 +17,7 @@ Debian Proot Console delivers a KVM-like Debian shell experience entirely in use
 - No KVM, no hypervisors, no Shizuku—pure userspace proot
 
 ## GitHub Actions (APK deployer)
-A CI workflow builds and publishes APKs:
+A CI workflow builds and publishes APKs you can download directly from GitHub Actions:
 - `./gradlew :app:assembleDebug :app:assembleRelease` on pushes and PRs
 - Uploads debug and release APKs as artifacts named with `versionName` and `versionCode`
 - On `v*.*.*` tags, a signed release APK is attached to a GitHub Release

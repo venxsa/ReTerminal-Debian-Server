@@ -23,40 +23,35 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - name: Decode and create xed.keystore
-        run: echo "${{ secrets.KEYSTORE }}" | base64 -d > /tmp/xed.keystore
-
-      - name: Decode and create signing.properties
-        run: echo "${{ secrets.PROP }}" | base64 -d > /tmp/signing.properties
+      - name: Decode release keystore
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > /tmp/release.keystore
+          echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
+          echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
+          echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Set Commit Hash
-        id: commit_hash
-        run: echo "COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+      - name: Resolve version info
+        id: version
+        run: |
+          VERSION_NAME=$(./gradlew -q printVersionName)
+          VERSION_CODE=$(./gradlew -q printVersionCode)
+          echo "name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "code=$VERSION_CODE" >> $GITHUB_OUTPUT
 
       - name: Build with Gradle
-        run: ./gradlew :app:assembleRelease && mv app/build/outputs/apk/release/*.apk app/reterminal-${{ env.COMMIT_HASH }}.apk
-        env:
-          KEYSTORE_FILE: /tmp/xed.keystore
-          SIGNING_PROPERTIES_FILE: /tmp/signing.properties
+        run: ./gradlew :app:assembleRelease
         continue-on-error: false
 
-      - name: Archive APK
+      - name: Upload release APK
         uses: actions/upload-artifact@v4
         with:
-          name: Karbon-Release
-          path: app/reterminal-${{ env.COMMIT_HASH }}.apk
+          name: debian-proot-release-${{ steps.version.outputs.name }}-${{ steps.version.outputs.code }}
+          path: app/build/outputs/apk/release/*.apk
 
-      - name: Delete xed.keystore and signing.properties
-        run: rm /tmp/xed.keystore /tmp/signing.properties
-
-      - name: Send APK to Telegram
-        if: ${{ success() && github.event.head_commit.message != '' }}
-        run: |
-          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT }}/sendDocument" \
-          -F chat_id="-1002292589492" \
-          -F message_thread_id="116" \
-          -F caption="${{ github.event.head_commit.message }} by ${{ github.actor }}" \
-          -F document=@"app/reterminal-${{ env.COMMIT_HASH }}.apk"
+      - name: Clean up keystore
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        run: rm /tmp/release.keystore || true
